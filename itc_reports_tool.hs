@@ -125,33 +125,33 @@ getShortTimeFrame timeFrame
     | timeFrame == "Monthly" = "M"
     | otherwise = "D"
 
-downloadFinancialReport timeframe date = do
+downloadFinancialReport vendor_id timeframe date = do
   system("cd Autoingestion")
   putStrLn(working_string)
-  alreadyDownloaded <- doesFileExist $ "./Autoingestion/S_" ++ getShortTimeFrame(timeframe) ++ "_80090654_" ++ date ++ ".txt.gz"
+  alreadyDownloaded <- doesFileExist $ "./Autoingestion/S_" ++ getShortTimeFrame(timeframe) ++ "_" ++ vendor_id ++ "_" ++ date ++ ".txt.gz"
   if alreadyDownloaded then
       system("echo 'Already Downloaded'")
   else
-      system("cd Autoingestion && java Autoingestion autoingestion.properties 80090654 Sales " ++ timeframe ++ " Summary " ++ date ++ " && cd ..")
+      system("cd Autoingestion && java Autoingestion autoingestion.properties " ++ vendor_id ++ " Sales " ++ timeframe ++ " Summary " ++ date ++ " && cd ..")
     where working_string = "working on " ++ date
 
 -- If report from previous is not available, apple autoingestion
 -- tools may download report from previous month. For example it may
 -- download the report for july even if we specified a date for
 -- august.
-downloadAllMonthlyFinancialReports :: IO ()
-downloadAllMonthlyFinancialReports = do
+downloadAllMonthlyFinancialReports :: String -> IO ()
+downloadAllMonthlyFinancialReports vendor_id = do
   current_month <- getCurrentMonth
   current_year <- getCurrentYear
-  mapM_ (downloadFinancialReport "Monthly") [snd(months) ++ fst(months) | months <- getLast12Months([getPreviousMonth(current_month, current_year)])]
+  mapM_ (downloadFinancialReport vendor_id "Monthly") [snd(months) ++ fst(months) | months <- getLast12Months([getPreviousMonth(current_month, current_year)])]
   return ()
 
-downloadAllDailyFinancialReports = do
+downloadAllDailyFinancialReports vendor_id = do
   current_month <- getCurrentMonth
   current_year <- getCurrentYear
   current_day <- getCurrentDay
   let days =  map (\(x, y ,z) -> z ++ y ++ x) [d | d <- getLast30Days([getPreviousDay(current_day, current_month, current_year)])]
-  mapM_ (downloadFinancialReport "daily") days
+  mapM_ (downloadFinancialReport vendor_id "daily") days
   return ()
 
 getReportContent :: String -> IO String
@@ -235,16 +235,16 @@ filter_report args = do
 
   return ()
 
-download_reports _ = do
+download_reports args = do
   putStrLn "=============================="
   putStrLn "Downloading Montly Reports"
   putStrLn "=============================="
-  downloadAllMonthlyFinancialReports
+  downloadAllMonthlyFinancialReports (args !! 0)
 
   putStrLn "=============================="
   putStrLn "Downloading Daily Reports"
   putStrLn "=============================="
-  downloadAllDailyFinancialReports
+  downloadAllDailyFinancialReports (args !! 0)
   return ()
 
 unknown command _ = do
@@ -253,11 +253,11 @@ unknown command _ = do
 
 help _ = do
   putStrLn "Usage:"
-  putStrLn "$ ./financial_reports_analyzer download"
-  putStrLn "$ ./financial_reports_analyzer sales <startdate> <enddate>"
-  putStrLn "$ ./financial_reports_analyzer filter <startdate> <enddate> <filter>"
+  putStrLn "$ ./itc_reports_tool download <vendor_id>"
+  putStrLn "$ ./itc_reports_tool sales <startdate> <enddate>"
+  putStrLn "$ ./itc_reports_tool filter <startdate> <enddate> <filter>"
   putStrLn "<filter> is a regular expression"
-  putStrLn "Dates must be in the form YEARMONTHDAY. Day is optional. i.e. 20140701 and 201408 are both valid"
+  putStrLn "Dates can be in the form YEARMONTHDAY or YEARMONTH. Day is optional. i.e. 20140701 and 201408 are both valid"
   return ()
 
 sales args = do
