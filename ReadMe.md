@@ -2,7 +2,9 @@
 
 First project in haskell. Please be tolerant :)
 
-*- itc_reports_tool help - to get a list of commands**
+1. Compile
+2. rename Autoingestion/autoingestion.properties.template to Autoingestion/autoingestion.properties and put your credentials for itunes connect
+3. First run with *./itc_reports_tool help* to get a list of commands
 
 You can download your monthly and daily reports
 You can view your sales for each app for a given period
