@@ -1,0 +1,5 @@
+autoingestion.properties
+Autoingestion/*.txt.gz
+itc_reports_tool
+itc_reports_tool.hi
+itc_reports_tool.o
