@@ -1,3 +1,4 @@
+-- download limitations :
 -- monthly reports available only for last 12 month
 -- daily reports only available for last 30 days
 import Codec.Compression.GZip as GZip
@@ -135,8 +136,8 @@ downloadFinancialReport vendor_id timeframe date = do
       system("cd Autoingestion && java Autoingestion autoingestion.properties " ++ vendor_id ++ " Sales " ++ timeframe ++ " Summary " ++ date ++ " && cd ..")
     where working_string = "working on " ++ date
 
--- If report from previous is not available, apple autoingestion
--- tools may download report from previous month. For example it may
+-- If report from previous month is not available, apple autoingestion
+-- tools may download report from previous previous month. For example it may
 -- download the report for july even if we specified a date for
 -- august.
 downloadAllMonthlyFinancialReports :: String -> IO ()
@@ -208,11 +209,11 @@ outputAppsSum report_filepaths sorted_reports = do
   putStrLn "=============================="
   putStrLn "App Sums:"
   putStrLn "=============================="
-  mapM_ putStrLn $ map (\(x,y) -> x ++ " -> " ++ (show y)) sorted_reports
+  mapM_ putStrLn $ map (\(x,y) -> x ++ " -> " ++ (show y) ++ " €") sorted_reports
   return ()
 
 outputfilteredReportData report_data filterString = do
-  putStrLn $ filterString ++ " -> " ++ show (foldl (\acc (x,y) -> acc + y) 0 $ filter (\(x,y) -> x =~ filterString) report_data)
+  putStrLn $ filterString ++ " -> " ++ (show (foldl (\acc (x,y) -> acc + y) 0 $ filter (\(x,y) -> x =~ filterString) report_data)) ++ " €"
   return ()
 
 main = do
