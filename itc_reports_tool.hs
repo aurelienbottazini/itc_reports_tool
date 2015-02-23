@@ -1,6 +1,7 @@
 -- download limitations :
 -- monthly reports available only for last 12 month
 -- daily reports only available for last 30 days
+-- Note: apple started reports in 2009
 import Codec.Compression.GZip as GZip
 import Data.ByteString.Lazy as L (readFile)
 import Data.ByteString.Lazy.Char8 (unpack)
@@ -14,33 +15,7 @@ import System.Locale
 import Text.Regex.Posix
 import qualified Data.Map as Map
 
-regionCodes :: [(String, String)]
-regionCodes = [("AE", "United Arab Emirates"),
-               ("AU", "Australia"),
-               ("CA", "Canada"),
-               ("CH", "Switzerland"),
-               ("DK", "Denmark"),
-               ("EU", "Euro-Zone"),
-               ("GB", "United Kingdom"),
-               ("HK", "Hong Kong"),
-               ("ID", "Indonesia"),
-               ("IL", "Israel"),
-               ("IN", "India"),
-               ("JP", "Japan"),
-               ("MX", "Mexico"),
-               ("NO", "Norway"),
-               ("NZ", "New Zealand"),
-               ("RU", "Russia"),
-               ("SA", "Saudi Arabia"),
-               ("SE", "Sweden"),
-               ("SG", "Singapore"),
-               ("TR", "Turkey"),
-               ("TW", "Taiwan"),
-               ("US", "United States"),
-               ("WW", "Rest of World"),
-               ("ZA", "South Africa")]
-
--- approximative conversion to euro. Might need a refactoring to
+-- Conversion to euro. Might need a refactoring to
 -- update rates from internet
 convertToEuros :: String -> Float -> Float
 convertToEuros currency money
@@ -69,12 +44,6 @@ convertToEuros currency money
     | "USD" == currency = money / 1.32
     | "ZAR" == currency = money / 14.1
     | otherwise = 1
-
--- apple started reports in 2009
-fiscalYears :: IO [String]
-fiscalYears = do
-  current_year <- getCurrentYear
-  return(map show [2009..read current_year])
 
 getCurrentMonth :: IO String
 getCurrentMonth = do
@@ -115,12 +84,6 @@ getPreviousDay (day, month, year)
     | otherwise = (show d, show m, show y)
     where (y, m, d) = toGregorian $ addDays (-1) $ fromGregorian (read year) (read month) (read day)
 
-compareMonthsAndYears :: (Ord a, Ord b) => (a, b) -> (a, b) -> Ordering
-compareMonthsAndYears (a1, b1) (a2, b2)
-                      | b1 < b2 = LT
-                      | b1 > b2 = GT
-                      | b1 == b2 = compare a1 a2
-
 getShortTimeFrame :: String -> String
 getShortTimeFrame timeFrame
     | timeFrame == "Monthly" = "M"
@@ -138,7 +101,7 @@ downloadFinancialReport vendor_id timeframe date = do
 
 -- If report from previous month is not available, apple autoingestion
 -- tools may download report from previous previous month. For example it may
--- download the report for july even if we specified a date for
+-- download the report for July even if we specified a date for
 -- august.
 downloadAllMonthlyFinancialReports :: String -> IO ()
 downloadAllMonthlyFinancialReports vendor_id = do
@@ -147,6 +110,7 @@ downloadAllMonthlyFinancialReports vendor_id = do
   mapM_ (downloadFinancialReport vendor_id "Monthly") [snd(months) ++ fst(months) | months <- getLast12Months([getPreviousMonth(current_month, current_year)])]
   return ()
 
+downloadAllDailyFinancialReports :: String -> IO ()
 downloadAllDailyFinancialReports vendor_id = do
   current_month <- getCurrentMonth
   current_year <- getCurrentYear
@@ -166,10 +130,11 @@ parseProceeds currency proceeds
               | otherwise = convertToEuros currency (read proceeds)
 
 parseReportLine :: [String] -> (String, Float)
--- proceeds (!! 8) are converted to euros then multiplied by the number of app solds for current report line ( !!7)
+-- proceeds (!! 8) are converted to euros then multiplied by the number of app sold for current report line ( !!7)
 parseReportLine report_line = (report_line !! 4, (parseProceeds (report_line !! 11) (report_line !! 8) * (read (report_line !! 7))))
 
 -- only months for now
+reportDateIsInInterval :: String -> String -> String -> Bool
 reportDateIsInInterval reportFilePath startDate endDate
     | diffDays (fromGregorian reportYear reportMonth reportDay) (fromGregorian startDateYear startDateMonth startDateDay) >= 0  &&
         diffDays (fromGregorian endDateYear endDateMonth endDateDay) (fromGregorian reportYear reportMonth reportDay) >= 0 = True
